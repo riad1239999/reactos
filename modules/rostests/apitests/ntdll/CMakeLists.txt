@@ -320,6 +320,7 @@ elseif(ARCH STREQUAL "amd64")
     add_asm_files(ntdll_apitest_asm
         ../crt/amd64/setjmp_helper.s
         amd64/NtContinue.S
+        amd64/NtCreateThread.S
     )
 endif()
 
