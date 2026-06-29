@@ -298,6 +298,7 @@
 #endif // SYSFUNCS_NT6_ONLY
 
 #ifndef SYSFUNCS_NT5_ONLY
+    SVC_(CreateThreadEx, 11)
     SVC_(GetCurrentProcessorNumberEx, 1)
     SVC_(GetNextThread, 6)
 #endif
