@@ -282,6 +282,7 @@ list(APPEND SOURCE
     RtlHandle.c
     RtlImageDirectoryEntryToData.c
     RtlImageRvaToVa.c
+    RtlInitializeContext.c
     RtlInitializeNtUserPfn.c
     RtlIsNameLegalDOS8Dot3.c
     RtlLocale.c
