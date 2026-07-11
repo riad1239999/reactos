@@ -1334,8 +1334,12 @@ DoUpdate:
             goto Cleanup;
         }
 
+#if 0
+// FIXME: For whatever reason, this distinction was introduced in commit
+// 829b0c63d9 (r38146), as part of a fix for https://jira.reactos.org/browse/CORE-3634
         if (!IsUnattendedSetup)
         {
+#endif
             Entry = GetCurrentListEntry(pSetupData->LayoutList);
             ASSERT(Entry);
             pSetupData->LayoutId = ((PGENENTRY)GetListEntryData(Entry))->Id;
@@ -1350,7 +1354,9 @@ DoUpdate:
                 ErrorNumber = ERROR_UPDATE_KBSETTINGS;
                 goto Cleanup;
             }
+#if 0
         }
+#endif
 
         /* Set GeoID */
         if (!SetGeoID(MUIGetGeoID(SelectedLanguageId)))
