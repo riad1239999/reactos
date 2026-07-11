@@ -22,7 +22,6 @@
 
 HANDLE ProcessHeap;
 SETUPDATA SetupData;
-static BOOLEAN IsUnattendedSetup;
 
 /* The partition where to perform the installation */
 PPARTENTRY InstallPartition = NULL;
@@ -462,6 +461,9 @@ TypeDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_UPDATE), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_UPDATETEXT), FALSE);
             }
+
+            // TODO: Consider handling existing install upgrade in unattended mode
+            // (currently unsupported in text-mode setup also).
 
             /* Ensure "Install ReactOS" is initially focused */
             SetFocus(GetDlgItem(hwndDlg, IDC_INSTALL));
@@ -1012,6 +1014,9 @@ DeviceDlgProc(
             // hList = GetDlgItem(hwndDlg, IDC_KEYBOARD_LAYOUT);
             // InitGenericComboList(hList, pSetupData->USetupData.LayoutList, GetSettingDescription);
 
+            // TODO: Consider doing here the list selections in unattended mode
+            // (for now they are done in LoadSetupData()).
+
             return TRUE;
         }
 
@@ -1022,8 +1027,25 @@ DeviceDlgProc(
             switch (lpnm->code)
             {
                 case PSN_SETACTIVE:
-                    PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_BACK | PSWIZB_NEXT);
+                {
+                    /* In unattended mode, don't allow going backwards further, i.e.
+                     * back to the Upgrade/Repair, the Install type, or the Start pages,
+                     * in case the setup is interrupted and the user manually goes back. */
+                    if (pSetupData->bUnattend)
+                        PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_NEXT);
+                    else
+                        PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_BACK | PSWIZB_NEXT);
+
+                    /* In unattended mode, switch directly to the next page.
+                     * TODO: *UNLESS* there are inconsistencies in the data,
+                     * in which case we should stay on the page! */
+                    if (pSetupData->bUnattend)
+                    {
+                        SetWindowLongPtrW(hwndDlg, DWLP_MSGRESULT, -1);
+                        return TRUE;
+                    }
                     break;
+                }
 
                 case PSN_QUERYCANCEL:
                 {
@@ -1208,6 +1230,13 @@ SummaryDlgProc(
                     SetWindowResTextW(GetDlgItem(GetParent(hwndDlg), ID_WIZNEXT),
                                       pSetupData->hInstance,
                                       IDS_INSTALLBTN);
+
+                    /* Skip the Summary page in unattended setup */
+                    if (pSetupData->bUnattend)
+                    {
+                        SetWindowLongPtrW(hwndDlg, DWLP_MSGRESULT, -1);
+                        return TRUE;
+                    }
 
                     /*
                      * Keep the "Next" button disabled. It will be enabled only
@@ -1427,15 +1456,9 @@ FsVolCallback(
     {
         if ((FSVOL_OP)Param1 == FSVOL_FORMAT)
         {
-            /*
-             * In case we just repair an existing installation, or make
-             * an unattended setup without formatting, just go to the
-             * filesystem check step.
-             */
+            /* In case we just repair an existing installation,
+             * just go to the file system check step */
             if (FsVolContext->pSetupData->RepairUpdateFlag)
-                return FSVOL_SKIP; /** HACK!! **/
-
-            if (IsUnattendedSetup && !FsVolContext->pSetupData->USetupData.FormatPartition)
                 return FSVOL_SKIP; /** HACK!! **/
 
             /* Set status text */
@@ -2679,7 +2702,7 @@ BOOL LoadSetupData(
 
     /* If not unattended, overwrite language and locale with
      * the current ones of the running ReactOS instance */
-    if (!IsUnattendedSetup)
+    if (!pSetupData->bUnattend)
     {
         LCID LocaleID = GetUserDefaultLCID();
 
@@ -2703,7 +2726,7 @@ BOOL LoadSetupData(
 
     /* If not unattended, overwrite keyboard layout with
      * the current one of the running ReactOS instance */
-    if (!IsUnattendedSetup)
+    if (!pSetupData->bUnattend)
     {
         C_ASSERT(_countof(pSetupData->DefaultKBLayout) >= KL_NAMELENGTH);
         /* If the call fails, keep the default already stored in the buffer */
@@ -3379,7 +3402,7 @@ _tWinMain(HINSTANCE hInst,
     }
 
     /* Retrieve any supplemental options from the unattend file */
-    SetupData.bUnattend = IsUnattendedSetup = CheckUnattendedSetup(&SetupData.USetupData);
+    SetupData.bUnattend = CheckUnattendedSetup(&SetupData.USetupData);
 
     /* Load extra setup data (HW lists etc...) */
     if (!LoadSetupData(&SetupData))
@@ -3402,6 +3425,12 @@ _tWinMain(HINSTANCE hInst,
     SetupData.hTitleFont = CreateTitleFont(NULL);
     SetupData.hBoldFont  = CreateBoldFont(NULL, 0);
 
+    /*
+     * These pages are useful only in standard installation scenario.
+     * In ReactOS unattended setup, we directly perform a new installation,
+     * possibly erasing any old one, but no upgrades.
+     * NOTE: This may be suject to changes in the future.
+     */
     if (!SetupData.bUnattend)
     {
         /* Create the Start page */
@@ -3434,40 +3463,40 @@ _tWinMain(HINSTANCE hInst,
         psp.pfnDlgProc = UpgradeRepairDlgProc;
         psp.pszTemplate = MAKEINTRESOURCEW(IDD_UPDATEREPAIRPAGE);
         ahpsp[nPages++] = CreatePropertySheetPage(&psp);
-
-        /* Create the Device Settings page */
-        psp.dwSize = sizeof(psp);
-        psp.dwFlags = PSP_DEFAULT | PSP_USEHEADERTITLE | PSP_USEHEADERSUBTITLE;
-        psp.pszHeaderTitle = MAKEINTRESOURCEW(IDS_DEVICETITLE);
-        psp.pszHeaderSubTitle = MAKEINTRESOURCEW(IDS_DEVICESUBTITLE);
-        psp.hInstance = hInst;
-        psp.lParam = (LPARAM)&SetupData;
-        psp.pfnDlgProc = DeviceDlgProc;
-        psp.pszTemplate = MAKEINTRESOURCEW(IDD_DEVICEPAGE);
-        ahpsp[nPages++] = CreatePropertySheetPage(&psp);
-
-        /* Create the Install device settings page / boot method / install directory */
-        psp.dwSize = sizeof(psp);
-        psp.dwFlags = PSP_DEFAULT | PSP_USEHEADERTITLE | PSP_USEHEADERSUBTITLE;
-        psp.pszHeaderTitle = MAKEINTRESOURCEW(IDS_DRIVETITLE);
-        psp.pszHeaderSubTitle = MAKEINTRESOURCEW(IDS_DRIVESUBTITLE);
-        psp.hInstance = hInst;
-        psp.lParam = (LPARAM)&SetupData;
-        psp.pfnDlgProc = DriveDlgProc;
-        psp.pszTemplate = MAKEINTRESOURCEW(IDD_DRIVEPAGE);
-        ahpsp[nPages++] = CreatePropertySheetPage(&psp);
-
-        /* Create the Summary page */
-        psp.dwSize = sizeof(psp);
-        psp.dwFlags = PSP_DEFAULT | PSP_USEHEADERTITLE | PSP_USEHEADERSUBTITLE;
-        psp.pszHeaderTitle = MAKEINTRESOURCEW(IDS_SUMMARYTITLE);
-        psp.pszHeaderSubTitle = MAKEINTRESOURCEW(IDS_SUMMARYSUBTITLE);
-        psp.hInstance = hInst;
-        psp.lParam = (LPARAM)&SetupData;
-        psp.pfnDlgProc = SummaryDlgProc;
-        psp.pszTemplate = MAKEINTRESOURCEW(IDD_SUMMARYPAGE);
-        ahpsp[nPages++] = CreatePropertySheetPage(&psp);
     }
+
+    /* Create the Device Settings page */
+    psp.dwSize = sizeof(psp);
+    psp.dwFlags = PSP_DEFAULT | PSP_USEHEADERTITLE | PSP_USEHEADERSUBTITLE;
+    psp.pszHeaderTitle = MAKEINTRESOURCEW(IDS_DEVICETITLE);
+    psp.pszHeaderSubTitle = MAKEINTRESOURCEW(IDS_DEVICESUBTITLE);
+    psp.hInstance = hInst;
+    psp.lParam = (LPARAM)&SetupData;
+    psp.pfnDlgProc = DeviceDlgProc;
+    psp.pszTemplate = MAKEINTRESOURCEW(IDD_DEVICEPAGE);
+    ahpsp[nPages++] = CreatePropertySheetPage(&psp);
+
+    /* Create the Install device settings page / boot method / install directory */
+    psp.dwSize = sizeof(psp);
+    psp.dwFlags = PSP_DEFAULT | PSP_USEHEADERTITLE | PSP_USEHEADERSUBTITLE;
+    psp.pszHeaderTitle = MAKEINTRESOURCEW(IDS_DRIVETITLE);
+    psp.pszHeaderSubTitle = MAKEINTRESOURCEW(IDS_DRIVESUBTITLE);
+    psp.hInstance = hInst;
+    psp.lParam = (LPARAM)&SetupData;
+    psp.pfnDlgProc = DriveDlgProc;
+    psp.pszTemplate = MAKEINTRESOURCEW(IDD_DRIVEPAGE);
+    ahpsp[nPages++] = CreatePropertySheetPage(&psp);
+
+    /* Create the Summary page */
+    psp.dwSize = sizeof(psp);
+    psp.dwFlags = PSP_DEFAULT | PSP_USEHEADERTITLE | PSP_USEHEADERSUBTITLE;
+    psp.pszHeaderTitle = MAKEINTRESOURCEW(IDS_SUMMARYTITLE);
+    psp.pszHeaderSubTitle = MAKEINTRESOURCEW(IDS_SUMMARYSUBTITLE);
+    psp.hInstance = hInst;
+    psp.lParam = (LPARAM)&SetupData;
+    psp.pfnDlgProc = SummaryDlgProc;
+    psp.pszTemplate = MAKEINTRESOURCEW(IDD_SUMMARYPAGE);
+    ahpsp[nPages++] = CreatePropertySheetPage(&psp);
 
     /* Create the Installation Progress page */
     psp.dwSize = sizeof(psp);
