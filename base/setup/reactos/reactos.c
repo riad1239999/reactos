@@ -380,7 +380,7 @@ StartDlgProc(
 
             /* Center the wizard window */
             CenterWindow(GetParent(hwndDlg));
-            break;
+            return TRUE;
         }
 
         case WM_NOTIFY:
@@ -462,7 +462,9 @@ TypeDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_UPDATETEXT), FALSE);
             }
 
-            break;
+            /* Ensure "Install ReactOS" is initially focused */
+            SetFocus(GetDlgItem(hwndDlg, IDC_INSTALL));
+            return FALSE;
         }
 
         case WM_NOTIFY:
@@ -474,13 +476,6 @@ TypeDlgProc(
                 case PSN_SETACTIVE:
                     PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_BACK | PSWIZB_NEXT);
                     break;
-
-                case PSN_QUERYINITIALFOCUS:
-                {
-                    /* Focus on "Install ReactOS" */
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_INSTALL));
-                    return TRUE;
-                }
 
                 case PSN_QUERYCANCEL:
                 {
@@ -917,7 +912,7 @@ UpgradeRepairDlgProc(
                     /* Give the focus on and select the first item */
                     hList = GetDlgItem(hwndDlg, IDC_NTOSLIST);
                     ListView_SetItemState(hList, 0, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)hList);
+                    SetWindowLongPtrW(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)hList);
                     return TRUE;
                 }
 
@@ -1016,7 +1011,7 @@ DeviceDlgProc(
             // hList = GetDlgItem(hwndDlg, IDC_KEYBOARD_LAYOUT);
             // InitGenericComboList(hList, pSetupData->USetupData.LayoutList, GetSettingDescription);
 
-            break;
+            return TRUE;
         }
 
         case WM_NOTIFY:
@@ -1028,13 +1023,6 @@ DeviceDlgProc(
                 case PSN_SETACTIVE:
                     PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_BACK | PSWIZB_NEXT);
                     break;
-
-                case PSN_QUERYINITIALFOCUS:
-                {
-                    /* Focus on "Computer" list */
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_COMPUTER));
-                    return TRUE;
-                }
 
                 case PSN_QUERYCANCEL:
                 {
@@ -1232,7 +1220,7 @@ SummaryDlgProc(
                 case PSN_QUERYINITIALFOCUS:
                 {
                     /* Focus on the confirmation check-box */
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_CONFIRM_INSTALL));
+                    SetWindowLongPtrW(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_CONFIRM_INSTALL));
                     return TRUE;
                 }
 
@@ -2536,7 +2524,7 @@ FinishDlgProc(
             /* Ensure that the installer wizard window is made visible and focused */
             ShowWindow(GetParent(hwndDlg), SW_SHOW);
             SwitchToThisWindow(GetParent(hwndDlg), TRUE);
-            break;
+            return TRUE;
         }
 
         case WM_DESTROY:

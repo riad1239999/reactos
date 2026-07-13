@@ -278,7 +278,7 @@ MoreOptDlgProc(
                 iCurrent = iDefault;
             SendDlgItemMessageW(hDlg, IDC_INSTFREELDR, CB_SETCURSEL, iCurrent, 0);
 
-            break;
+            return TRUE;
         }
 
         case WM_DESTROY:
@@ -441,7 +441,7 @@ FormatDlgProcWorker(
             else
                 CheckDlgButton(hDlg, IDC_CHECK_QUICKFMT, BST_UNCHECKED);
 
-            break;
+            return TRUE;
         }
 
         case WM_COMMAND:
