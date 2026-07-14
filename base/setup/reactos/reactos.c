@@ -40,6 +40,7 @@ UI_CONTEXT UiContext;
 
 /* FUNCTIONS ****************************************************************/
 
+// See also setupapi!pSetupCenterWindowRelativeToParent()
 static VOID
 CenterWindow(HWND hWnd)
 {
@@ -378,8 +379,8 @@ StartDlgProc(
             SetDlgItemFont(hwndDlg, IDC_WARNTEXT2, pSetupData->hBoldFont, TRUE);
             SetDlgItemFont(hwndDlg, IDC_WARNTEXT3, pSetupData->hBoldFont, TRUE);
 
-            /* Center the wizard window */
-            CenterWindow(GetParent(hwndDlg));
+            ///* Center the wizard window */
+            //CenterWindow(GetParent(hwndDlg));
             return TRUE;
         }
 
@@ -409,8 +410,8 @@ StartDlgProc(
                 default:
                     break;
             }
+            break;
         }
-        break;
 
         default:
             break;
@@ -543,8 +544,8 @@ TypeDlgProc(
                 default:
                     break;
             }
+            break;
         }
-        break;
 
         default:
             break;
@@ -968,8 +969,8 @@ UpgradeRepairDlgProc(
                 default:
                     break;
             }
+            break;
         }
-        break;
 
         default:
             break;
@@ -1071,8 +1072,8 @@ DeviceDlgProc(
                 default:
                     break;
             }
+            break;
         }
-        break;
 
         default:
             break;
@@ -1878,6 +1879,7 @@ PrepareAndDoCopyThread(
 {
     PSETUPDATA pSetupData;
     HWND hwndDlg = (HWND)Param;
+    HWND hWndParent = GetParent(hwndDlg);
     HWND hWndProgress;
     LONG_PTR dwStyle;
     ERROR_NUMBER ErrorNumber;
@@ -1903,8 +1905,8 @@ PrepareAndDoCopyThread(
     /* Disable the Close/Cancel buttons during all partition operations */
     // TODO: Consider, alternatively, to just show an info-box saying
     // that the installation process cannot be canceled at this stage?
-    // PropSheet_SetWizButtons(GetParent(hwndDlg), 0);
-    PropSheet_SetCloseCancel(GetParent(hwndDlg), FALSE);
+    // PropSheet_SetWizButtons(hWndParent, 0);
+    PropSheet_SetCloseCancel(hWndParent, FALSE);
 
 
     /*
@@ -1934,16 +1936,16 @@ PrepareAndDoCopyThread(
     if (!Success)
     {
         /* Display an error if an unexpected failure happened */
-        MessageBoxW(GetParent(hwndDlg), L"Failed to find or set the system partition!", L"Error", MB_ICONERROR);
+        MessageBoxW(hWndParent, L"Failed to find or set the system partition!", L"Error", MB_ICONERROR);
 
         /* Re-enable the Close/Cancel buttons */
-        PropSheet_SetCloseCancel(GetParent(hwndDlg), TRUE);
+        PropSheet_SetCloseCancel(hWndParent, TRUE);
 
         /*
          * We failed due to an unexpected error, keep on the copy page to view the current state,
          * but enable the "Next" button to allow the user to continue to the Abort page.
          */
-        PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_NEXT);
+        PropSheet_SetWizButtons(hWndParent, PSWIZB_NEXT);
         return 1;
     }
 
@@ -1963,22 +1965,22 @@ PrepareAndDoCopyThread(
     if (!Success)
     {
         /* Display an error if an unexpected failure happened */
-        MessageBoxW(GetParent(hwndDlg), L"Failed to prepare the partitions!", L"Error", MB_ICONERROR);
+        MessageBoxW(hWndParent, L"Failed to prepare the partitions!", L"Error", MB_ICONERROR);
 
         /* Re-enable the Close/Cancel buttons */
-        PropSheet_SetCloseCancel(GetParent(hwndDlg), TRUE);
+        PropSheet_SetCloseCancel(hWndParent, TRUE);
 
         /*
          * We failed due to an unexpected error, keep on the copy page to view the current state,
          * but enable the "Next" button to allow the user to continue to the Abort page.
          */
-        PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_NEXT);
+        PropSheet_SetWizButtons(hWndParent, PSWIZB_NEXT);
         return 1;
     }
 
 
     /* Re-enable the Close/Cancel buttons */
-    PropSheet_SetCloseCancel(GetParent(hwndDlg), TRUE);
+    PropSheet_SetCloseCancel(hWndParent, TRUE);
 
 
 
@@ -1989,13 +1991,13 @@ PrepareAndDoCopyThread(
                                   InstallVolume);
     if (!NT_SUCCESS(Status))
     {
-        DisplayMessage(GetParent(hwndDlg), MB_ICONERROR, L"Error", L"InitDestinationPaths() failed with status 0x%08lx\n", Status);
+        DisplayMessage(hWndParent, MB_ICONERROR, L"Error", L"InitDestinationPaths() failed with status 0x%08lx\n", Status);
 
         /*
          * We failed due to an unexpected error, keep on the copy page to view the current state,
          * but enable the "Next" button to allow the user to continue to the Abort page.
          */
-        PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_NEXT);
+        PropSheet_SetWizButtons(hWndParent, PSWIZB_NEXT);
         return 1;
     }
 
@@ -2027,7 +2029,7 @@ PrepareAndDoCopyThread(
     {
         /* Display an error only if an unexpected failure happened, and not because the user cancelled the installation */
         if (!pSetupData->bStopInstall)
-            MessageBoxW(GetParent(hwndDlg), L"Failed to prepare the list of files!", L"Error", MB_ICONERROR);
+            MessageBoxW(hWndParent, L"Failed to prepare the list of files!", L"Error", MB_ICONERROR);
 
         /*
          * If we failed due to an unexpected error, keep on the copy page to view the current state,
@@ -2035,7 +2037,7 @@ PrepareAndDoCopyThread(
          * Otherwise we have been cancelled by the user, who has already switched to the Abort page.
          */
         if (!pSetupData->bStopInstall)
-            PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_NEXT);
+            PropSheet_SetWizButtons(hWndParent, PSWIZB_NEXT);
         return 1;
     }
 
@@ -2060,7 +2062,7 @@ PrepareAndDoCopyThread(
     {
         /* Display an error only if an unexpected failure happened, and not because the user cancelled the installation */
         if (!pSetupData->bStopInstall)
-            MessageBoxW(GetParent(hwndDlg), L"Failed to copy the files!", L"Error", MB_ICONERROR);
+            MessageBoxW(hWndParent, L"Failed to copy the files!", L"Error", MB_ICONERROR);
 
         /*
          * If we failed due to an unexpected error, keep on the copy page to view the current state,
@@ -2068,7 +2070,7 @@ PrepareAndDoCopyThread(
          * Otherwise we have been cancelled by the user, who has already switched to the Abort page.
          */
         if (!pSetupData->bStopInstall)
-            PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_NEXT);
+            PropSheet_SetWizButtons(hWndParent, PSWIZB_NEXT);
         return 1;
     }
 
@@ -2141,7 +2143,7 @@ PrepareAndDoCopyThread(
 
             INT nRet;
         RetryCancel:
-            nRet = DisplayMessage(GetParent(hwndDlg),
+            nRet = DisplayMessage(hWndParent,
                                   MB_ICONINFORMATION | MB_OKCANCEL,
                                   L"Bootloader installation",
                                   L"Please insert a blank floppy disk in drive %c: .\n"
@@ -2163,7 +2165,7 @@ PrepareAndDoCopyThread(
             if (Status == STATUS_DEVICE_NOT_READY)
             {
                 // ERROR_NO_FLOPPY
-                nRet = DisplayMessage(GetParent(hwndDlg),
+                nRet = DisplayMessage(hWndParent,
                                       MB_ICONWARNING | MB_RETRYCANCEL,
                                       NULL, // Default to "Error"
                                       L"No disk detected in drive %c: .",
@@ -2175,7 +2177,7 @@ PrepareAndDoCopyThread(
                      (Status == ERROR_INSTALL_BOOTCODE))
             {
                 /* Error when writing the boot code */
-                DisplayError(GetParent(hwndDlg),
+                DisplayError(hWndParent,
                              0, // Default to "Error"
                              IDS_ERROR_INSTALL_BOOTCODE_REMOVABLE);
             }
@@ -2183,7 +2185,7 @@ PrepareAndDoCopyThread(
             {
                 /* Any other NTSTATUS failure code */
                 DPRINT1("InstallBootcodeToRemovable() failed: Status 0x%lx\n", Status);
-                DisplayError(GetParent(hwndDlg),
+                DisplayError(hWndParent,
                              0, // Default to "Error"
                              IDS_ERROR_BOOTLDR_FAILED,
                              Status);
@@ -2210,7 +2212,7 @@ PrepareAndDoCopyThread(
             if (Status == ERROR_WRITE_BOOT)
             {
                 /* Error when writing the VBR */
-                DisplayError(GetParent(hwndDlg),
+                DisplayError(hWndParent,
                              0, // Default to "Error"
                              IDS_ERROR_WRITE_BOOT,
                              SystemVolume->Info.FileSystem);
@@ -2218,14 +2220,14 @@ PrepareAndDoCopyThread(
             else if (Status == ERROR_INSTALL_BOOTCODE)
             {
                 /* Error when writing the MBR */
-                DisplayError(GetParent(hwndDlg),
+                DisplayError(hWndParent,
                              0, // Default to "Error"
                              IDS_ERROR_INSTALL_BOOTCODE,
                              L"MBR");
             }
             else if (Status == STATUS_NOT_SUPPORTED)
             {
-                DisplayError(GetParent(hwndDlg),
+                DisplayError(hWndParent,
                              0, // Default to "Error"
                              IDS_ERROR_BOOTLDR_ARCH_UNSUPPORTED);
             }
@@ -2233,7 +2235,7 @@ PrepareAndDoCopyThread(
             {
                 /* Any other NTSTATUS failure code */
                 DPRINT1("InstallBootManagerAndBootEntries() failed: Status 0x%lx\n", Status);
-                DisplayError(GetParent(hwndDlg),
+                DisplayError(hWndParent,
                              0, // Default to "Error"
                              IDS_ERROR_BOOTLDR_FAILED,
                              Status);
@@ -2249,7 +2251,7 @@ PrepareAndDoCopyThread(
 
 
     /* We are done! Switch to the Finish page */
-    PropSheet_SetCurSelByID(GetParent(hwndDlg), IDD_FINISHPAGE);
+    PropSheet_SetCurSelByID(hWndParent, IDD_FINISHPAGE);
     return 0;
 }
 
@@ -2288,6 +2290,8 @@ ProcessDlgProc(
             {
                 case PSN_SETACTIVE:
                 {
+                    HWND hWndParent = GetParent(hwndDlg);
+
                     /* Create the file-copy halt (manual-reset) event */
                     pSetupData->hHaltInstallEvent = CreateEventW(NULL, TRUE, TRUE, NULL);
                     if (!pSetupData->hHaltInstallEvent)
@@ -2306,15 +2310,15 @@ ProcessDlgProc(
                         CloseHandle(pSetupData->hHaltInstallEvent);
                         pSetupData->hHaltInstallEvent = NULL;
 
-                        MessageBoxW(GetParent(hwndDlg), L"Cannot create the prepare-and-copy files thread!", L"Error", MB_ICONERROR);
+                        MessageBoxW(hWndParent, L"Cannot create the prepare-and-copy files thread!", L"Error", MB_ICONERROR);
                         break;
                     }
 
                     /* Disable all buttons during installation, they will be
                      * re-enabled by the installation thread; hide "Back" */
-                    PropSheet_SetWizButtons(GetParent(hwndDlg), 0);
-                    // PropSheet_ShowWizButtons(GetParent(hwndDlg), 0, PSWIZB_BACK);
-                    ShowDlgItem(GetParent(hwndDlg), ID_WIZBACK, SW_HIDE);
+                    PropSheet_SetWizButtons(hWndParent, 0);
+                    // PropSheet_ShowWizButtons(hWndParent, 0, PSWIZB_BACK);
+                    ShowDlgItem(hWndParent, ID_WIZBACK, SW_HIDE);
 
                     /* Resume the installation thread */
                     ResumeThread(pSetupData->hInstallThread);
@@ -2469,6 +2473,7 @@ FinishDlgProc(
     {
         case WM_INITDIALOG:
         {
+            HWND hWndParent = GetParent(hwndDlg);
             LPPROPSHEETPAGEW ppsp = (LPPROPSHEETPAGEW)lParam;
 
             /* Save pointer to the global setup data */
@@ -2516,19 +2521,18 @@ FinishDlgProc(
             /* If the installation is aborted, change the "Cancel" button text to "Close" */
             if (pSetupData->bStopInstall)
             {
-                SetWindowResTextW(GetDlgItem(GetParent(hwndDlg), IDCANCEL),
+                SetWindowResTextW(GetDlgItem(hWndParent, IDCANCEL),
                                   GetModuleHandleW(L"comctl32.dll"),
                                   IDS_CLOSE);
             }
 
+            /* Center the wizard window */
+            CenterWindow(hWndParent);
             /* Ensure that the installer wizard window is made visible and focused */
-            ShowWindow(GetParent(hwndDlg), SW_SHOW);
-            SwitchToThisWindow(GetParent(hwndDlg), TRUE);
+            ShowWindow(hWndParent, SW_SHOW);
+            SwitchToThisWindow(hWndParent, TRUE);
             return TRUE;
         }
-
-        case WM_DESTROY:
-            return TRUE;
 
         case WM_ACTIVATE:
         {
@@ -3234,6 +3238,104 @@ WINAPI setupDelayHook(unsigned dliNotify, PDelayLoadInfo pdli)
 /*ExternC*/ PfnDliHook __pfnDliFailureHook2 = setupDelayHook;
 
 
+#include <pshpack1.h>
+typedef struct DLGTEMPLATEEX
+{
+    WORD dlgVer;
+    WORD signature;
+    DWORD helpID;
+    DWORD exStyle;
+    DWORD style;
+    WORD cDlgItems;
+    short x;
+    short y;
+    short cx;
+    short cy;
+} DLGTEMPLATEEX, *LPDLGTEMPLATEEX;
+#include <poppack.h>
+
+WNDPROC wpOrgPrshtProc = NULL;
+
+/* Message handler for property sheet dialog */
+static LRESULT
+CALLBACK
+PrshtWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
+{
+    switch (uMessage)
+    {
+        case DM_REPOSITION:
+        {
+            /* Center the wizard window */
+            CenterWindow(hWnd);
+            break;
+        }
+
+        case WM_DESTROY:
+        {
+            /* Restore the original dialog procedure */
+            ASSERT(wpOrgPrshtProc);
+            SetWindowLongPtrW(hWnd, DWLP_DLGPROC, (LONG_PTR)wpOrgPrshtProc);
+        }
+
+        default:
+            break;
+    }
+
+    /* Invoke the original dialog procedure */
+    return CallWindowProc(wpOrgPrshtProc, hWnd, uMessage, wParam, lParam);
+}
+
+static int
+CALLBACK
+PropSheetCallback(
+    _In_ HWND hDlg,
+    _In_ UINT message,
+    _In_ LPARAM lParam)
+{
+    switch (message)
+    {
+        case PSCB_PRECREATE:
+        {
+            LPDLGTEMPLATE   dlgTemplate   =   (LPDLGTEMPLATE)lParam;
+            LPDLGTEMPLATEEX dlgTemplateEx = (LPDLGTEMPLATEEX)lParam;
+            DWORD dwStyle = 0, dwStyleMask = 0;
+
+            dwStyle |= DS_CENTER; // Set us to center -- But it doesn't appear propsheet code handles it...
+            // dwStyleMask |= DS_CONTEXTHELP; // TODO: Disable if we don't want context help.
+            dwStyle |= DS_SETFOREGROUND; // Ensure we are initially set to the foreground.
+            dwStyleMask |= dwStyle;
+
+            /* Set the property sheet dialog styles */
+            if (dlgTemplateEx->signature == 0xFFFF)
+                dlgTemplateEx->style = (dlgTemplateEx->style & ~dwStyleMask) | (dwStyle & dwStyleMask);
+            else
+                dlgTemplate->style = (dlgTemplate->style & ~dwStyleMask) | (dwStyle & dwStyleMask);
+            break;
+        }
+
+        // NOTE: This callback is needed to set large icon correctly.
+        case PSCB_INITIALIZED:
+        {
+            HICON hIcon = LoadIconW(SetupData.hInstance, MAKEINTRESOURCEW(IDI_MAIN));
+            SendMessageW(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+
+            /* Sub-class the property sheet window procedure */
+            wpOrgPrshtProc = (WNDPROC)SetWindowLongPtrW(hDlg, DWLP_DLGPROC, (LONG_PTR)PrshtWndProc);
+
+            // FIXME: HACK: Wine comctl32 propsheet.c doesn't send DM_REPOSITION
+            // after creating, initializing and resizing the property sheet dialog,
+            // so we simulate its call there...
+            PostMessageW(hDlg, DM_REPOSITION, 0, 0);
+            break;
+        }
+
+        default:
+            break;
+    }
+
+    return FALSE;
+}
+
 int WINAPI
 _tWinMain(HINSTANCE hInst,
           HINSTANCE hPrevInstance,
@@ -3398,12 +3500,15 @@ _tWinMain(HINSTANCE hInst,
 
     /* Create the property sheet */
     psh.dwSize = sizeof(psh);
-    psh.dwFlags = PSH_WIZARD97 | PSH_WATERMARK | PSH_HEADER;
+    psh.dwFlags = PSH_WIZARD97 | /*PSH_PROPTITLE |*/ PSH_USEICONID | PSH_USECALLBACK | PSH_WATERMARK | PSH_HEADER;
     psh.hInstance = hInst;
     psh.hwndParent = NULL;
+    psh.pszIcon = MAKEINTRESOURCEW(IDI_MAIN);
+    // psh.pszCaption = lpszTitle;
     psh.nPages = nPages;
     psh.nStartPage = 0;
     psh.phpage = ahpsp;
+    psh.pfnCallback = PropSheetCallback;
     psh.pszbmWatermark = MAKEINTRESOURCEW(IDB_WATERMARK);
     psh.pszbmHeader = MAKEINTRESOURCEW(IDB_HEADER);
 
