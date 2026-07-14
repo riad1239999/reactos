@@ -13,7 +13,7 @@ elseif(ARCH STREQUAL "arm")
 elseif(ARCH STREQUAL "arm64")
     set(EFI_PLATFORM_ID "aa64")
 else()
-    message(FATAL_ERROR "Unknown ARCH '" ${ARCH} "', cannot generate a valid UEFI boot image filename.")
+    message(FATAL_ERROR "Unknown ARCH '" ${ARCH} "', cannot make a valid UEFI boot image filename.")
 endif()
 
 ## efisys.bin
