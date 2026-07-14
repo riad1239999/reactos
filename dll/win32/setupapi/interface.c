@@ -317,12 +317,11 @@ CreateSymbolicLink(
 
     pSetupStringFromGuid(InterfaceGuid, GuidString, ARRAYSIZE(GuidString));
 
-    ActualLength = swprintf(SymbolicLink,
-                            Length,
-                            L"\\\\?\\%s#%s\\%s",
-                            devInfo->instanceId,
-                            GuidString,
-                            ReferenceString);
+    ActualLength = _swprintf(SymbolicLink,
+                             L"\\\\?\\%s#%s\\%s",
+                             devInfo->instanceId,
+                             GuidString,
+                             ReferenceString);
     ASSERT(ActualLength == Length - 1);
 
     return SymbolicLink;
