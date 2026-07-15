@@ -4259,5 +4259,14 @@ DESKTOP_SCHEME_21="麥色"
 DESKTOP_SCHEME_22="紅、白、藍色"
 DESKTOP_SCHEME_SIZE_0="預設大小"
 TEMP_DIR="%USERPROFILE%\Local Settings\Temp"
+HKCU,"Control Panel\Input Method\Hot Keys\00000011","Key Modifiers",0x00030003,04,c0,00,00
+HKCU,"Control Panel\Input Method\Hot Keys\00000011","Target IME",0x00030003,00,00,00,00
+HKCU,"Control Panel\Input Method\Hot Keys\00000011"
+
+; Force Lautus Theme Default
+HKCU,"Software\Microsoft\Windows\CurrentVersion\ThemeManager","ThemeActive",0x00000000,"1"
+HKCU,"Software\Microsoft\Windows\CurrentVersion\ThemeManager","ColorName",0x00000000,"NormalColor"
+HKCU,"Software\Microsoft\Windows\CurrentVersion\ThemeManager","DllName",0x00020000,"%SystemRoot%\Resources\Themes\Lautus\Lautus.msstyles"
+HKCU,"Software\Microsoft\Windows\CurrentVersion\ThemeManager","SizeName",0x00000000,"NormalSize"
 
 ; EOF
